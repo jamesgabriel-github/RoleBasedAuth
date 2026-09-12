@@ -6,6 +6,10 @@ use App\Http\Controllers\Api\Admin\UserStatusController;
 use App\Http\Controllers\Api\Auth\LoginController;
 use App\Http\Controllers\Api\Auth\RegisterController;
 use App\Http\Controllers\Api\Auth\UserController;
+use App\Http\Controllers\Api\Messaging\ConversationController;
+use App\Http\Controllers\Api\Messaging\MessageController;
+use App\Http\Controllers\Api\Messaging\ReadReceiptController;
+use App\Http\Controllers\Api\Messaging\UserSearchController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [RegisterController::class, 'store']);
@@ -28,4 +32,12 @@ Route::middleware(['auth:sanctum', 'account.active'])->group(function () {
 
     Route::middleware('permission:enable-disable-admin')
         ->patch('/admin/admins/{user}/status', [UserStatusController::class, 'updateAdminStatus']);
+
+    Route::get('/messaging/users/search', [UserSearchController::class, 'index']);
+
+    Route::get('/conversations', [ConversationController::class, 'index']);
+    Route::post('/conversations', [ConversationController::class, 'store']);
+    Route::get('/conversations/{conversation}/messages', [MessageController::class, 'index']);
+    Route::post('/conversations/{conversation}/messages', [MessageController::class, 'store']);
+    Route::patch('/conversations/{conversation}/read', [ReadReceiptController::class, 'update']);
 });

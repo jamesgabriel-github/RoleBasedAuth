@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ensureCsrfCookie } from '@/lib/api-client'
+import { connectEcho, disconnectEcho } from '@/lib/echo'
 import type { User } from '@/types/user'
 import * as authApi from './api'
 import type { LoginPayload, RegisterPayload } from './types'
@@ -35,6 +36,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     bootstrap()
   }, [bootstrap])
+
+  useEffect(() => {
+    if (user) {
+      connectEcho()
+    } else {
+      disconnectEcho()
+    }
+  }, [user])
 
   const login = useCallback(async (payload: LoginPayload) => {
     const loggedInUser = await authApi.login(payload)

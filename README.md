@@ -11,6 +11,7 @@ A single-page application with role-based authentication and routing — guests 
 - **Live session tracking**: "currently logged-in clients" reflects actual open sessions (queried from the `sessions` table), not an activity-recency guess
 - **Instant enable/disable**: disabling a user deletes their session rows immediately — no waiting for a token to expire
 - **Guardrails**: a user can't disable their own account; the last active super admin can't be disabled
+- **Real-time direct messaging**: plain-text, asynchronous messaging between users with asymmetric discovery (clients can only search other clients; admins/super_admins can search anyone) and per-participant unread tracking
 
 ## Tech Stack
 
@@ -27,7 +28,7 @@ A single-page application with role-based authentication and routing — guests 
 └── frontend/    React SPA (Vite)
 ```
 
-See [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) for a detailed breakdown of what's implemented on each side, and [AUTH_FLOW_GUIDE.md](./AUTH_FLOW_GUIDE.md) for a deep dive into how the cookie-based auth, session persistence, and OAuth redirect flow work end to end.
+See [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) for a detailed breakdown of what's implemented on each side, [AUTH_FLOW_GUIDE.md](./AUTH_FLOW_GUIDE.md) for a deep dive into how the cookie-based auth, session persistence, and OAuth redirect flow work end to end, and [MESSAGING_IMPLEMENTATION.md](./MESSAGING_IMPLEMENTATION.md) for the real-time direct messaging architecture (Reverb broadcasting, channel authorization, async unread tracking).
 
 ## Prerequisites
 
@@ -59,9 +60,18 @@ FACEBOOK_CLIENT_ID=...
 FACEBOOK_CLIENT_SECRET=...
 GITHUB_CLIENT_ID=...
 GITHUB_CLIENT_SECRET=...
+
+BROADCAST_CONNECTION=reverb
+QUEUE_CONNECTION=database
+REVERB_APP_ID=<generated-id>
+REVERB_APP_KEY=<generated-key>
+REVERB_APP_SECRET=<generated-secret>
 ```
 
 > OAuth apps must have their redirect URI set to `http://localhost:8000/auth/{provider}/callback` in each provider's developer console. Skip this if you only need email/password login.
+>
+> Reverb credentials are auto-generated during `install:broadcasting` and are safe for local dev (no external secrets).
+> Frontend also needs `VITE_REVERB_APP_KEY`, `VITE_REVERB_HOST`, `VITE_REVERB_PORT`, `VITE_REVERB_SCHEME` in `frontend/.env` — copy the corresponding values from the backend `.env`.
 
 Create the database, then run migrations and seed roles/permissions + a bootstrap super admin:
 
@@ -82,6 +92,16 @@ php artisan serve
 # → http://localhost:8000
 ```
 
+For real-time messaging support, also start the WebSocket server and queue worker (in separate terminals):
+
+```bash
+php artisan reverb:start
+# → Reverb server running on localhost:8080
+
+php artisan queue:work
+# → Queue worker listening for broadcast jobs
+```
+
 ### 2. Frontend
 
 ```bash
@@ -94,7 +114,7 @@ npm run dev
 
 ### 3. Log in
 
-Visit `http://localhost:5173` and either register a new client account or log in as the seeded super admin.
+Visit `http://localhost:5173` and either register a new client account or log in as the seeded super admin. Once logged in, all users (clients and admins) can access the messaging feature to send direct messages.
 
 ## Debugging
 
@@ -108,6 +128,8 @@ Visit `http://localhost:5173` and either register a new client account or log in
 | Command | Where | What |
 |---|---|---|
 | `php artisan serve` | `backend/` | Run the API server |
+| `php artisan reverb:start` | `backend/` | Run the WebSocket server (needed for real-time messaging) |
+| `php artisan queue:work` | `backend/` | Run the queue worker (processes broadcast jobs for messaging) |
 | `php artisan migrate:fresh --seed` | `backend/` | Reset the database to a clean seeded state |
 | `php artisan tinker` | `backend/` | Interactive REPL for testing backend code |
 | `npm run dev` | `frontend/` | Run the Vite dev server |

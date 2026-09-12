@@ -1,7 +1,9 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { AdminAccountsPage } from '@/pages/AdminAccountsPage'
+import { ConversationPage } from '@/pages/ConversationPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { LoginRegisterPage } from '@/pages/LoginRegisterPage'
+import { MessagesEmptyState, MessagesPage } from '@/pages/MessagesPage'
 import { OAuthCallbackPage } from '@/pages/OAuthCallbackPage'
 import { PublicLandingPage } from '@/pages/PublicLandingPage'
 import { ProtectedRoute } from './ProtectedRoute'
@@ -40,6 +42,14 @@ export const router = createBrowserRouter([
             <AdminAccountsPage />
           </RequireRole>
         ),
+      },
+      {
+        path: '/messages',
+        element: <MessagesPage />,
+        children: [
+          { index: true, element: <MessagesEmptyState /> },
+          { path: ':conversationId', element: <ConversationPage /> },
+        ],
       },
     ],
   },
