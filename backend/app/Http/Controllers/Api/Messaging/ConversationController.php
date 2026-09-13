@@ -25,7 +25,9 @@ class ConversationController extends Controller
             ->orderByDesc('last_message_at')
             ->get();
 
-        return response()->json(['conversations' => ConversationResource::collection($conversations)]);
+        $resources = $conversations->map(fn (Conversation $conversation) => new ConversationResource($conversation, $userId));
+
+        return response()->json(['conversations' => $resources]);
     }
 
     public function store(CreateConversationRequest $request): JsonResponse

@@ -31,7 +31,11 @@ export function MessageThread({
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    markConversationRead(conversationId).then(onRead)
+    markConversationRead(conversationId)
+      .then(onRead)
+      .catch((error) => {
+        console.error('Failed to mark conversation as read', error)
+      })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId])
 

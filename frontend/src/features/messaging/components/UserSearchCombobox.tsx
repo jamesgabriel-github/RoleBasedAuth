@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -54,7 +55,8 @@ export function UserSearchCombobox({ onSelect }: { onSelect: (user: User) => voi
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="default" size="sm">
+          <Plus className="size-4" />
           New message
         </Button>
       </PopoverTrigger>

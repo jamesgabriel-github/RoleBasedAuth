@@ -1,8 +1,10 @@
+import { ChevronRight } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
+import { ROLE_LABELS } from '@/features/dashboard/roleLabels'
 import { cn } from '@/lib/utils'
 import type { ConversationSummary } from '../types'
+import { formatConversationTimestamp, getAvatarColorClasses } from '../utils'
 
 function initials(name: string): string {
   return name
@@ -14,6 +16,10 @@ function initials(name: string): string {
 }
 
 export function ConversationListItem({ conversation }: { conversation: ConversationSummary }) {
+  const timestamp = formatConversationTimestamp(
+    conversation.lastMessage?.createdAt ?? conversation.updatedAt,
+  )
+
   return (
     <NavLink
       to={`/messages/${conversation.id}`}
@@ -25,19 +31,28 @@ export function ConversationListItem({ conversation }: { conversation: Conversat
       }
     >
       <Avatar>
-        <AvatarFallback>{initials(conversation.otherUser.fullName)}</AvatarFallback>
+        <AvatarFallback className={getAvatarColorClasses(conversation.otherUser.id)}>
+          {initials(conversation.otherUser.fullName)}
+        </AvatarFallback>
       </Avatar>
       <div className="flex flex-1 flex-col overflow-hidden">
         <span className="truncate font-medium">{conversation.otherUser.fullName}</span>
         <span className="truncate text-xs text-muted-foreground">
+          {ROLE_LABELS[conversation.otherUser.role]}
+        </span>
+        <span className="truncate text-xs text-muted-foreground">
           {conversation.lastMessage?.body ?? 'No messages yet'}
         </span>
       </div>
-      {conversation.unreadCount > 0 && (
-        <Badge variant="default" className="shrink-0">
-          {conversation.unreadCount}
-        </Badge>
-      )}
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <span className="text-xs text-muted-foreground">{timestamp}</span>
+        <div className="flex items-center gap-1">
+          {conversation.unreadCount > 0 && (
+            <span className="size-2 rounded-full bg-emerald-500" aria-label="Unread" />
+          )}
+          <ChevronRight className="size-4 text-muted-foreground" />
+        </div>
+      </div>
     </NavLink>
   )
 }

@@ -16,9 +16,10 @@ class ReadReceiptController extends Controller
 
         $readAt = now();
 
-        $conversation->participants()
-            ->where('user_id', $request->user()->id)
-            ->update(['last_read_at' => $readAt]);
+        $conversation->participants()->updateOrCreate(
+            ['user_id' => $request->user()->id],
+            ['last_read_at' => $readAt],
+        );
 
         return response()->json(['readAt' => $readAt]);
     }
