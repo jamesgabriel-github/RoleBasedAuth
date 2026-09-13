@@ -2,6 +2,7 @@ import { ChevronRight } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ROLE_LABELS } from '@/features/dashboard/roleLabels'
+import { formatCallLogLabel } from '@/features/videoCall/utils'
 import { cn } from '@/lib/utils'
 import type { ConversationSummary } from '../types'
 import { formatConversationTimestamp, getAvatarColorClasses } from '../utils'
@@ -13,6 +14,15 @@ function initials(name: string): string {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join('')
+}
+
+function previewText(conversation: ConversationSummary): string {
+  const { lastMessage } = conversation
+  if (!lastMessage) return 'No messages yet'
+  if (lastMessage.type === 'call_log' && lastMessage.call) {
+    return formatCallLogLabel(lastMessage.call.status, lastMessage.call.durationSeconds)
+  }
+  return lastMessage.body ?? 'No messages yet'
 }
 
 export function ConversationListItem({ conversation }: { conversation: ConversationSummary }) {
@@ -40,9 +50,7 @@ export function ConversationListItem({ conversation }: { conversation: Conversat
         <span className="truncate text-xs text-muted-foreground">
           {ROLE_LABELS[conversation.otherUser.role]}
         </span>
-        <span className="truncate text-xs text-muted-foreground">
-          {conversation.lastMessage?.body ?? 'No messages yet'}
-        </span>
+        <span className="truncate text-xs text-muted-foreground">{previewText(conversation)}</span>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1.5">
         <span className="text-xs text-muted-foreground">{timestamp}</span>

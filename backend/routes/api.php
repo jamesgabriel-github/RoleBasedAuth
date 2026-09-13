@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Admin\UserStatusController;
 use App\Http\Controllers\Api\Auth\LoginController;
 use App\Http\Controllers\Api\Auth\RegisterController;
 use App\Http\Controllers\Api\Auth\UserController;
+use App\Http\Controllers\Api\Calling\CallController;
 use App\Http\Controllers\Api\Messaging\ConversationController;
 use App\Http\Controllers\Api\Messaging\MessageController;
 use App\Http\Controllers\Api\Messaging\ReadReceiptController;
@@ -40,4 +41,11 @@ Route::middleware(['auth:sanctum', 'account.active'])->group(function () {
     Route::get('/conversations/{conversation}/messages', [MessageController::class, 'index']);
     Route::post('/conversations/{conversation}/messages', [MessageController::class, 'store']);
     Route::patch('/conversations/{conversation}/read', [ReadReceiptController::class, 'update']);
+
+    Route::post('/conversations/{conversation}/calls', [CallController::class, 'store']);
+    Route::post('/calls/{call}/accept', [CallController::class, 'accept']);
+    Route::post('/calls/{call}/decline', [CallController::class, 'decline']);
+    Route::post('/calls/{call}/cancel', [CallController::class, 'cancel']);
+    Route::post('/calls/{call}/end', [CallController::class, 'end']);
+    Route::post('/calls/{call}/timeout', [CallController::class, 'timeout']);
 });

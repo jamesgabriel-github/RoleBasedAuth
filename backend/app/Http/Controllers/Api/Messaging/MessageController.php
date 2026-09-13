@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Messaging;
 
+use App\Enums\MessageType;
 use App\Events\ConversationUpdated;
 use App\Events\MessageSent;
 use App\Http\Controllers\Controller;
@@ -20,7 +21,7 @@ class MessageController extends Controller
         Gate::authorize('view', $conversation);
 
         $messages = $conversation->messages()
-            ->with('sender')
+            ->with(['sender', 'call'])
             ->orderByDesc('created_at')
             ->paginate(30);
 
@@ -37,6 +38,7 @@ class MessageController extends Controller
         $message = DB::transaction(function () use ($conversation, $sender, $body) {
             $message = $conversation->messages()->create([
                 'sender_id' => $sender->id,
+                'type' => MessageType::Text,
                 'body' => $body,
             ]);
 

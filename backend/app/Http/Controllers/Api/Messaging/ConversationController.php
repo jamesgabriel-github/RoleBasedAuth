@@ -21,7 +21,7 @@ class ConversationController extends Controller
 
         $conversations = Conversation::query()
             ->where(fn ($query) => $query->where('user_one_id', $userId)->orWhere('user_two_id', $userId))
-            ->with(['userOne', 'userTwo', 'lastMessage', 'participants'])
+            ->with(['userOne', 'userTwo', 'lastMessage.call', 'participants'])
             ->orderByDesc('last_message_at')
             ->get();
 
@@ -58,7 +58,7 @@ class ConversationController extends Controller
         });
 
         return response()->json([
-            'conversation' => new ConversationResource($conversation->load(['userOne', 'userTwo', 'lastMessage', 'participants'])),
+            'conversation' => new ConversationResource($conversation->load(['userOne', 'userTwo', 'lastMessage.call', 'participants'])),
         ], 201);
     }
 }

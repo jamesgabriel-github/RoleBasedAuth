@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils'
-import type { Message } from '../types'
+import type { TextMessage } from '../types'
 
-export function MessageBubble({ message, isOwn }: { message: Message; isOwn: boolean }) {
+export function MessageBubble({ message, isOwn }: { message: TextMessage; isOwn: boolean }) {
   return (
     <div className={cn('flex', isOwn ? 'justify-end' : 'justify-start')}>
       <div

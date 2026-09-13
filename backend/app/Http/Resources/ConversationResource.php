@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\MessageType;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -30,6 +31,18 @@ class ConversationResource extends JsonResource
             'lastMessage' => $this->lastMessage ? [
                 'body' => $this->lastMessage->body,
                 'senderId' => $this->lastMessage->sender_id,
+                'type' => $this->lastMessage->type->value,
+                'call' => $this->lastMessage->type === MessageType::CallLog
+                    && $this->lastMessage->relationLoaded('call')
+                    && $this->lastMessage->call
+                    ? [
+                        'id' => $this->lastMessage->call->id,
+                        'status' => $this->lastMessage->call->status->value,
+                        'callerId' => $this->lastMessage->call->caller_id,
+                        'calleeId' => $this->lastMessage->call->callee_id,
+                        'durationSeconds' => $this->lastMessage->call->duration_seconds,
+                    ]
+                    : null,
                 'createdAt' => $this->lastMessage->created_at,
             ] : null,
             'unreadCount' => (int) ($this->unread_count ?? $this->countUnreadFor($viewerId)),

@@ -2,9 +2,11 @@ import { useEffect, useRef } from 'react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAuth } from '@/features/auth/AuthContext'
+import { CallButton } from '@/features/videoCall/components/CallButton'
 import type { User } from '@/types/user'
 import { markConversationRead, sendMessage } from '../api'
 import { useMessages } from '../hooks/useMessages'
+import { CallLogMessage } from './CallLogMessage'
 import { MessageBubble } from './MessageBubble'
 import { MessageComposer } from './MessageComposer'
 
@@ -58,6 +60,9 @@ export function MessageThread({
           <span className="text-sm font-medium">{otherUser.fullName}</span>
           <span className="text-xs text-muted-foreground">{otherUser.email}</span>
         </div>
+        <div className="ml-auto">
+          <CallButton conversationId={conversationId} otherUser={otherUser} />
+        </div>
       </div>
 
       <ScrollArea className="flex-1 p-4">
@@ -65,9 +70,13 @@ export function MessageThread({
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : (
           <div className="flex flex-col gap-2">
-            {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} isOwn={message.senderId === user?.id} />
-            ))}
+            {messages.map((message) =>
+              message.type === 'call_log' ? (
+                <CallLogMessage key={message.id} message={message} />
+              ) : (
+                <MessageBubble key={message.id} message={message} isOwn={message.senderId === user?.id} />
+              ),
+            )}
             <div ref={bottomRef} />
           </div>
         )}

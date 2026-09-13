@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { connectEcho } from '@/lib/echo'
+import { subscribeUserChannel } from '@/lib/userChannel'
 import type { ConversationSummary } from '../types'
 
 export function useUserChannel(
@@ -15,15 +15,24 @@ export function useUserChannel(
   useEffect(() => {
     if (!userId) return
 
-    const channelName = `user.${userId}`
-    const handler = (conversation: ConversationSummary) => onConversationUpdatedRef.current(conversation)
+    let cleanup: (() => void) | undefined
+    let cancelled = false
 
-    connectEcho().then((echo) => {
-      echo.private(channelName).listen('.conversation.updated', handler)
+    subscribeUserChannel(userId, (channel) => {
+      const handler = (conversation: ConversationSummary) => onConversationUpdatedRef.current(conversation)
+      channel.listen('.conversation.updated', handler)
+      return () => channel.stopListening('.conversation.updated', handler)
+    }).then((unsubscribe) => {
+      if (cancelled) {
+        unsubscribe()
+      } else {
+        cleanup = unsubscribe
+      }
     })
 
     return () => {
-      connectEcho().then((echo) => echo.leave(channelName))
+      cancelled = true
+      cleanup?.()
     }
   }, [userId])
 }

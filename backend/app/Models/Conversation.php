@@ -51,4 +51,9 @@ class Conversation extends Model
     {
         return $this->user_one_id === $userId ? $this->userTwo : $this->userOne;
     }
+
+    public function isParticipant(int $userId): bool
+    {
+        return $this->user_one_id === $userId || $this->user_two_id === $userId;
+    }
 }

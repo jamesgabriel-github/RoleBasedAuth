@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Enums\UserRole;
+use App\Models\Call;
 use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
@@ -24,9 +25,17 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::before(function (User $user, string $ability, array $arguments = []) {
-            if (($arguments[0] ?? null) instanceof Conversation) {
-                // Conversations are strictly participant-only, even for super_admin —
-                // always defer to ConversationPolicy instead of bypassing.
+            // Gate::raw() passes the raw, unstripped arguments array here — for
+            // abilities authorized via the [Class::class, $model] "create-style"
+            // form (e.g. Call's `initiate`), the target model may sit at any
+            // index, not just 0. Scan all of them rather than only $arguments[0].
+            $targetsRestrictedModel = collect($arguments)->contains(
+                fn ($argument) => $argument instanceof Conversation || $argument instanceof Call,
+            );
+
+            if ($targetsRestrictedModel) {
+                // Conversations and calls are strictly participant-only, even for
+                // super_admin — always defer to their policies instead of bypassing.
                 return null;
             }
 

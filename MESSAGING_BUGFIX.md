@@ -55,6 +55,42 @@ While tracing this, two smaller (real, but not the root cause) issues were also 
    ```
 2. **`frontend/src/features/messaging/components/MessageThread.tsx`** — the mark-as-read call (`markConversationRead(conversationId).then(onRead)`) had no `.catch()`, so a failed PATCH request (network error, auth issue) would fail completely silently. Added error logging on failure.
 
+---
+
+# Secondary bugfix: Message input field not clearing after send
+
+## Symptom
+When sending a message, the input field remained filled with the text after clicking Send. The message never appeared in the thread, and no error was visible to the user.
+
+## Root cause
+`MessageController::store()` created new messages without explicitly setting the `type` field:
+```php
+$message = $conversation->messages()->create([
+    'sender_id' => $sender->id,
+    'body' => $body,
+]);
+```
+The `messages` table schema has `type` as `string default('text')`, but Eloquent's `create()` method doesn't reflect database-level column defaults back into the in-memory PHP model object — it only populates columns from the data you explicitly pass. So `$message->type` remained `null` in memory.
+
+Then `MessageResource::toArray()` (line 22) immediately crashed trying to access `$this->type->value` on the null enum, producing a 500 Internal Server Error. The frontend's `sendMessage()` function never caught this error (no `.catch()` handler), so the promise rejection was never handled and `setBody('')` was never called.
+
+## Fix
+**`backend/app/Http/Controllers/Api/Messaging/MessageController.php`** — `store()` method now explicitly sets `'type' => MessageType::Text` on creation:
+```php
+$message = $conversation->messages()->create([
+    'sender_id' => $sender->id,
+    'type' => MessageType::Text,
+    'body' => $body,
+]);
+```
+Also updated `index()` method to include the `call` relation: `.with(['sender', 'call'])` to support call-log messages.
+
 ## Verification
+- Tested with Playwright browser automation: logged in, opened a conversation, sent a message, confirmed 201 Created response + input field cleared + message visible in thread.
+- Ran 5 consecutive send-and-clear cycles successfully.
+
+---
+
+## Verification (unread counter fix)
 - Confirmed via `php artisan tinker`, simulating both the broken (`::collection()`) and fixed (`->map()`) code paths directly, that the broken path produced `viewer_id` values of `0` and `1` (matching array position) instead of the real user id `7`, while the fixed path correctly resolved `unreadCount: 0` for both conversations after they'd been read.
 - Confirmed in-browser: reloading the Messages page after the fix keeps previously-read conversations marked as read (no badge/dot), instead of resetting to unread.

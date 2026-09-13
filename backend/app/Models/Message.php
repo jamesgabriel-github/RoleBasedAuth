@@ -2,13 +2,21 @@
 
 namespace App\Models;
 
+use App\Enums\MessageType;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['conversation_id', 'sender_id', 'body'])]
+#[Fillable(['conversation_id', 'sender_id', 'type', 'call_id', 'body'])]
 class Message extends Model
 {
+    protected function casts(): array
+    {
+        return [
+            'type' => MessageType::class,
+        ];
+    }
+
     /** @return BelongsTo<Conversation, $this> */
     public function conversation(): BelongsTo
     {
@@ -19,5 +27,11 @@ class Message extends Model
     public function sender(): BelongsTo
     {
         return $this->belongsTo(User::class, 'sender_id');
+    }
+
+    /** @return BelongsTo<Call, $this> */
+    public function call(): BelongsTo
+    {
+        return $this->belongsTo(Call::class);
     }
 }

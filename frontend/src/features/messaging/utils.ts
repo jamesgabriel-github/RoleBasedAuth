@@ -33,6 +33,6 @@ export function filterConversations(
   return conversations.filter(
     (conversation) =>
       conversation.otherUser.fullName.toLowerCase().includes(trimmed) ||
-      (conversation.lastMessage?.body.toLowerCase().includes(trimmed) ?? false),
+      (conversation.lastMessage?.body?.toLowerCase().includes(trimmed) ?? false),
   )
 }

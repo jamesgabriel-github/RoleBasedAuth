@@ -16,4 +16,19 @@ enum UserRole: string
             self::SuperAdmin => 'Super Admin',
         };
     }
+
+    /**
+     * Video calls are only allowed client-to-client, or between staff
+     * (admin/super_admin, in any combination) — never across that tier.
+     */
+    public function canVideoCallWith(self $other): bool
+    {
+        if ($this === self::Client && $other === self::Client) {
+            return true;
+        }
+
+        $staff = [self::Admin, self::SuperAdmin];
+
+        return in_array($this, $staff, true) && in_array($other, $staff, true);
+    }
 }

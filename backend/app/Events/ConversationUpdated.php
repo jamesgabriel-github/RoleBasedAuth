@@ -36,7 +36,7 @@ class ConversationUpdated implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return (new ConversationResource(
-            $this->conversation->loadMissing(['userOne', 'userTwo', 'lastMessage', 'participants']),
+            $this->conversation->loadMissing(['userOne', 'userTwo', 'lastMessage.call', 'participants']),
             $this->recipientId,
         ))->resolve();
     }
