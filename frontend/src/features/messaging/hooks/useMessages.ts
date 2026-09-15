@@ -7,8 +7,8 @@ import { useConversationChannel } from './useConversationChannel'
 export function useMessages(conversationId: number | null) {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
 
   const load = useCallback(async () => {
@@ -16,10 +16,9 @@ export function useMessages(conversationId: number | null) {
     setLoading(true)
     setError(null)
     try {
-      const result = await listMessages(conversationId, 1)
+      const result = await listMessages(conversationId)
       setMessages(result.data.slice().reverse())
-      setHasMore(result.meta.current_page < result.meta.last_page)
-      setPage(1)
+      setHasMore(result.hasMore)
     } catch (err) {
       setError(getErrorMessage(err, 'Unable to load messages.'))
     } finally {
@@ -32,13 +31,17 @@ export function useMessages(conversationId: number | null) {
   }, [load])
 
   const loadMore = useCallback(async () => {
-    if (!conversationId || !hasMore) return
-    const nextPage = page + 1
-    const result = await listMessages(conversationId, nextPage)
-    setMessages((current) => [...result.data.slice().reverse(), ...current])
-    setHasMore(result.meta.current_page < result.meta.last_page)
-    setPage(nextPage)
-  }, [conversationId, hasMore, page])
+    if (!conversationId || !hasMore || loadingMore) return
+    setLoadingMore(true)
+    try {
+      const oldestId = messages[0]?.id
+      const result = await listMessages(conversationId, oldestId)
+      setMessages((current) => [...result.data.slice().reverse(), ...current])
+      setHasMore(result.hasMore)
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [conversationId, hasMore, loadingMore, messages])
 
   const appendMessage = useCallback((message: Message) => {
     setMessages((current) =>
@@ -48,5 +51,5 @@ export function useMessages(conversationId: number | null) {
 
   useConversationChannel(conversationId, appendMessage)
 
-  return { messages, loading, error, hasMore, loadMore, appendMessage, reload: load }
+  return { messages, loading, loadingMore, error, hasMore, loadMore, appendMessage, reload: load }
 }

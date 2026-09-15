@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
+import type { UIEvent } from 'react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -9,6 +10,8 @@ import { useMessages } from '../hooks/useMessages'
 import { CallLogMessage } from './CallLogMessage'
 import { MessageBubble } from './MessageBubble'
 import { MessageComposer } from './MessageComposer'
+
+const NEAR_EDGE_THRESHOLD_PX = 100
 
 function initials(name: string): string {
   return name
@@ -29,8 +32,12 @@ export function MessageThread({
   onRead: () => void
 }) {
   const { user } = useAuth()
-  const { messages, loading, appendMessage } = useMessages(conversationId)
+  const { messages, loading, loadingMore, hasMore, loadMore, appendMessage } = useMessages(conversationId)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const prevScrollHeightRef = useRef<number | null>(null)
+  const isNearBottomRef = useRef(true)
+  const didInitialScrollRef = useRef(false)
 
   useEffect(() => {
     markConversationRead(conversationId)
@@ -41,9 +48,39 @@ export function MessageThread({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId])
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: 'end' })
-  }, [messages])
+  useLayoutEffect(() => {
+    const el = viewportRef.current
+    if (!el) return
+
+    if (prevScrollHeightRef.current != null) {
+      // Older messages were just prepended — keep the previously-visible message anchored.
+      el.scrollTop = el.scrollHeight - prevScrollHeightRef.current
+      prevScrollHeightRef.current = null
+      return
+    }
+
+    if (!didInitialScrollRef.current) {
+      if (!loading && messages.length > 0) {
+        bottomRef.current?.scrollIntoView({ block: 'end' })
+        didInitialScrollRef.current = true
+      }
+      return
+    }
+
+    if (isNearBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ block: 'end' })
+    }
+  }, [messages, loading])
+
+  function handleScroll(event: UIEvent<HTMLDivElement>) {
+    const el = event.currentTarget
+    isNearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_EDGE_THRESHOLD_PX
+
+    if (el.scrollTop < NEAR_EDGE_THRESHOLD_PX && hasMore && !loadingMore) {
+      prevScrollHeightRef.current = el.scrollHeight
+      loadMore()
+    }
+  }
 
   async function handleSend(body: string) {
     const message = await sendMessage(conversationId, body)
@@ -65,11 +102,14 @@ export function MessageThread({
         </div>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1 p-4">
+      <ScrollArea className="min-h-0 flex-1 p-4" viewportRef={viewportRef} onViewportScroll={handleScroll}>
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : (
           <div className="flex flex-col gap-2">
+            {loadingMore && (
+              <p className="py-2 text-center text-xs text-muted-foreground">Loading older messages…</p>
+            )}
             {messages.map((message) =>
               message.type === 'call_log' ? (
                 <CallLogMessage key={message.id} message={message} />

@@ -22,10 +22,10 @@ export async function getOrCreateConversation(userId: number): Promise<Conversat
   return data.conversation
 }
 
-export async function listMessages(conversationId: number, page = 1): Promise<PaginatedMessages> {
+export async function listMessages(conversationId: number, before?: number): Promise<PaginatedMessages> {
   const { data } = await apiClient.get<{ messages: PaginatedMessages }>(
     `/api/conversations/${conversationId}/messages`,
-    { params: { page } },
+    { params: before ? { before } : undefined },
   )
   return data.messages
 }

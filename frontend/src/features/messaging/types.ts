@@ -51,5 +51,5 @@ export interface ConversationSummary {
 
 export interface PaginatedMessages {
   data: Message[]
-  meta: { current_page: number; last_page: number }
+  hasMore: boolean
 }

@@ -20,12 +20,27 @@ class MessageController extends Controller
     {
         Gate::authorize('view', $conversation);
 
-        $messages = $conversation->messages()
-            ->with(['sender', 'call'])
-            ->orderByDesc('created_at')
-            ->paginate(30);
+        $perPage = 30;
+        $before = $request->integer('before');
 
-        return response()->json(['messages' => MessageResource::collection($messages)->response()->getData(true)]);
+        $query = $conversation->messages()
+            ->with(['sender', 'call'])
+            ->orderByDesc('id');
+
+        if ($before) {
+            $query->where('id', '<', $before);
+        }
+
+        $messages = $query->limit($perPage + 1)->get();
+        $hasMore = $messages->count() > $perPage;
+        $messages = $messages->take($perPage);
+
+        return response()->json([
+            'messages' => [
+                'data' => MessageResource::collection($messages),
+                'hasMore' => $hasMore,
+            ],
+        ]);
     }
 
     public function store(SendMessageRequest $request, Conversation $conversation): JsonResponse
