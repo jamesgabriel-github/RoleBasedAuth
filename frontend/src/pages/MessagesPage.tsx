@@ -8,7 +8,7 @@ export function MessagesPage() {
 
   return (
     <DashboardShell>
-      <div className="flex h-[calc(100vh-4rem-3rem)] rounded-lg border">
+      <div className="flex h-[calc(100vh-4rem-3rem)] overflow-hidden rounded-lg border">
         <ConversationList
           conversations={conversations}
           loading={loading}
