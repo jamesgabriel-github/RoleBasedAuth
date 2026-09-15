@@ -33,11 +33,11 @@ export function CallWindow() {
 
   useEffect(() => {
     if (localVideoRef.current) localVideoRef.current.srcObject = localStream
-  }, [localStream])
+  }, [localStream, phase])
 
   useEffect(() => {
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream
-  }, [remoteStream])
+  }, [remoteStream, phase])
 
   if ((phase !== 'outgoing' && phase !== 'active') || !call) return null
 
