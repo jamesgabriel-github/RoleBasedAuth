@@ -1,4 +1,4 @@
-import { LogOut } from 'lucide-react'
+import { LogOut, Menu } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,14 +20,23 @@ function initials(name: string): string {
     .join('')
 }
 
-export function TopNav() {
+export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
   const { user, logout } = useAuth()
 
   if (!user) return null
 
   return (
-    <header className="flex h-16 items-center justify-between border-b px-6">
+    <header className="flex h-16 items-center justify-between border-b px-4 sm:px-6">
       <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          aria-label="Open menu"
+          onClick={onMenuClick}
+        >
+          <Menu className="size-5" />
+        </Button>
         <div className="flex size-8 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
           A
         </div>

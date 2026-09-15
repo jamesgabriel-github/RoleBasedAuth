@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 import type { User } from '@/types/user'
 import { getOrCreateConversation } from '../api'
 import type { ConversationSummary } from '../types'
@@ -15,11 +16,13 @@ export function ConversationList({
   loading,
   error,
   onConversationStarted,
+  className,
 }: {
   conversations: ConversationSummary[]
   loading: boolean
   error: string | null
   onConversationStarted: (conversation: ConversationSummary) => void
+  className?: string
 }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
@@ -32,7 +35,7 @@ export function ConversationList({
   }
 
   return (
-    <div className="flex h-full w-80 shrink-0 flex-col border-r">
+    <div className={cn('flex h-full w-full shrink-0 flex-col border-r md:w-80', className)}>
       <div className="flex flex-col gap-1 border-b p-4">
         <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           Your inbox

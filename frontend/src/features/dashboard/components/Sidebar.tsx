@@ -1,17 +1,9 @@
-import type { LucideIcon } from 'lucide-react'
-import { LayoutGrid, MessageCircle, ShieldCheck } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useMessagingContext } from '@/features/messaging/MessagingContext'
 import { cn } from '@/lib/utils'
-import type { Role } from '@/types/user'
-
-const links: { to: string; label: string; end?: boolean; roles?: Role[]; icon: LucideIcon }[] = [
-  { to: '/dashboard', label: 'Overview', end: true, icon: LayoutGrid },
-  { to: '/messages', label: 'Messages', icon: MessageCircle },
-  { to: '/admin/accounts', label: 'Admin accounts', roles: ['super_admin'], icon: ShieldCheck },
-]
+import { dashboardNavLinks } from '../navLinks'
 
 export function Sidebar() {
   const { user } = useAuth()
@@ -23,7 +15,7 @@ export function Sidebar() {
         Workspace
       </p>
       <nav className="flex flex-col gap-1">
-        {links
+        {dashboardNavLinks
           .filter((link) => !link.roles || (user && link.roles.includes(user.role)))
           .map(({ to, label, end, icon: Icon }) => (
             <NavLink

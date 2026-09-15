@@ -1,6 +1,9 @@
+import { ChevronLeft } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import type { UIEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAuth } from '@/features/auth/AuthContext'
 import { CallButton } from '@/features/videoCall/components/CallButton'
@@ -32,6 +35,7 @@ export function MessageThread({
   onRead: () => void
 }) {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const { messages, loading, loadingMore, hasMore, loadMore, appendMessage } = useMessages(conversationId)
   const bottomRef = useRef<HTMLDivElement>(null)
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -90,12 +94,21 @@ export function MessageThread({
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-3 border-b p-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="-ml-1 md:hidden"
+          aria-label="Back to conversations"
+          onClick={() => navigate('/messages')}
+        >
+          <ChevronLeft className="size-5" />
+        </Button>
         <Avatar>
           <AvatarFallback>{initials(otherUser.fullName)}</AvatarFallback>
         </Avatar>
-        <div className="flex flex-col">
-          <span className="text-sm font-medium">{otherUser.fullName}</span>
-          <span className="text-xs text-muted-foreground">{otherUser.email}</span>
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <span className="truncate text-sm font-medium">{otherUser.fullName}</span>
+          <span className="truncate text-xs text-muted-foreground">{otherUser.email}</span>
         </div>
         <div className="ml-auto">
           <CallButton conversationId={conversationId} otherUser={otherUser} />

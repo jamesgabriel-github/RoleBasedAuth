@@ -1,10 +1,12 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useMatch } from 'react-router-dom'
 import { DashboardShell } from '@/features/dashboard/components/DashboardShell'
 import { ConversationList } from '@/features/messaging/components/ConversationList'
 import { useMessagingContext } from '@/features/messaging/MessagingContext'
+import { cn } from '@/lib/utils'
 
 export function MessagesPage() {
   const { conversations, loading, error, upsertConversation } = useMessagingContext()
+  const hasSelectedConversation = Boolean(useMatch('/messages/:conversationId'))
 
   return (
     <DashboardShell>
@@ -14,8 +16,16 @@ export function MessagesPage() {
           loading={loading}
           error={error}
           onConversationStarted={upsertConversation}
+          className={cn(hasSelectedConversation && 'hidden md:flex')}
         />
-        <Outlet context={{ conversations, upsertConversation }} />
+        <div
+          className={cn(
+            'min-h-0 flex-1 flex-col',
+            hasSelectedConversation ? 'flex' : 'hidden md:flex',
+          )}
+        >
+          <Outlet context={{ conversations, upsertConversation }} />
+        </div>
       </div>
     </DashboardShell>
   )

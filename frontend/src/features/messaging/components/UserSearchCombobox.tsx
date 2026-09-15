@@ -60,7 +60,7 @@ export function UserSearchCombobox({ onSelect }: { onSelect: (user: User) => voi
           New message
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-80">
+      <PopoverContent align="start" className="w-[calc(100vw-2rem)] sm:w-80">
         <Input
           autoFocus
           placeholder="Search by email…"
