@@ -35,10 +35,28 @@ export function formatCallLogLabel(status: CallStatus, durationSeconds: number |
   }
 }
 
-// STUN-only for now — no TURN server. Calls behind symmetric NAT or strict
-// corporate firewalls may fail to connect; that's an accepted limitation.
+// TURN is only added when VITE_TURN_URLS/USERNAME/CREDENTIAL are all set —
+// otherwise this degrades to the previous STUN-only behavior (e.g. on a dev
+// machine or CI without ExpressTurn credentials configured).
+function parseTurnServers(): RTCIceServer[] {
+  const rawUrls: string = import.meta.env.VITE_TURN_URLS ?? ''
+  const urls = rawUrls
+    .split(',')
+    .map((url: string) => url.trim())
+    .filter(Boolean)
+  const username: string | undefined = import.meta.env.VITE_TURN_USERNAME
+  const credential: string | undefined = import.meta.env.VITE_TURN_CREDENTIAL
+
+  if (urls.length === 0 || !username || !credential) return []
+
+  return [{ urls, username, credential }]
+}
+
 export const RTC_CONFIG: RTCConfiguration = {
-  iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }],
+  iceServers: [
+    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+    ...parseTurnServers(),
+  ],
 }
 
 export const CALL_RING_TIMEOUT_MS = 45_000
