@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getErrorMessage } from '@/lib/errors'
 import { useAuth } from '../AuthContext'
+import * as authApi from '../api'
 
 const initialState = {
   first_name: '',
@@ -20,9 +21,15 @@ const initialState = {
 export function RegisterForm() {
   const { register } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [form, setForm] = useState(initialState)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [desktopMessage, setDesktopMessage] = useState<string | null>(null)
+
+  const isDesktop = searchParams.get('source') === 'desktop'
+  const callbackPort = searchParams.get('callback_port')
+  const state = searchParams.get('state')
 
   function update<K extends keyof typeof initialState>(key: K, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -33,13 +40,37 @@ export function RegisterForm() {
     setError(null)
     setSubmitting(true)
     try {
-      await register(form)
-      navigate('/dashboard')
+      if (isDesktop) {
+        // Opened by the desktop app for sign-up: register without touching
+        // AuthContext's user state, so PublicOnlyRoute never redirects this tab
+        // to /dashboard — the account is meant to be used on desktop, not here.
+        const { token } = await authApi.register({ ...form, source: 'desktop' })
+
+        if (token && callbackPort && state) {
+          fetch(
+            `http://127.0.0.1:${callbackPort}/callback?token=${encodeURIComponent(token)}&state=${encodeURIComponent(state)}`,
+            { mode: 'no-cors' },
+          ).catch(() => {
+            // Fire-and-forget: the desktop app may have closed mid-flow. The
+            // account still exists either way, so there's nothing to surface.
+          })
+          setDesktopMessage("You're signed in on the desktop app — you can close this tab.")
+        } else {
+          setDesktopMessage('Account created — you can close this tab and log in from the desktop app.')
+        }
+      } else {
+        await register(form)
+        navigate('/dashboard')
+      }
     } catch (err) {
       setError(getErrorMessage(err, 'Unable to register.'))
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (desktopMessage) {
+    return <p className="text-sm text-muted-foreground">{desktopMessage}</p>
   }
 
   return (

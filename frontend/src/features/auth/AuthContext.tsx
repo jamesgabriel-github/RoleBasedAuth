@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const register = useCallback(async (payload: RegisterPayload) => {
-    const newUser = await authApi.register(payload)
+    const { user: newUser } = await authApi.register(payload)
     setUser(newUser)
     return newUser
   }, [])

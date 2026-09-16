@@ -28,9 +28,19 @@ class RegisterController extends Controller
 
         $user->assignRole(UserRole::Client->value);
 
-        Auth::login($user);
-        $request->session()->regenerate();
+        $response = ['user' => new UserResource($user)];
 
-        return response()->json(['user' => new UserResource($user)], 201);
+        if ($request->input('source') === 'desktop') {
+            // Opened by the desktop app's system-browser registration flow — it
+            // authenticates with a Bearer token, not a session cookie, and we
+            // deliberately skip Auth::login() so this browser tab doesn't end up
+            // with its own logged-in SPA session for an account meant for desktop.
+            $response['token'] = $user->createToken('desktop-app')->plainTextToken;
+        } else {
+            Auth::login($user);
+            $request->session()->regenerate();
+        }
+
+        return response()->json($response, 201);
     }
 }

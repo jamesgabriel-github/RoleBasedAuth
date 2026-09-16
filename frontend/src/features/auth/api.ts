@@ -1,6 +1,6 @@
 import { apiClient, ensureCsrfCookie } from '@/lib/api-client'
 import type { User } from '@/types/user'
-import type { LoginPayload, OAuthProvider, RegisterPayload } from './types'
+import type { LoginPayload, OAuthProvider, RegisterPayload, RegisterResult } from './types'
 
 export async function fetchMe(): Promise<User> {
   const { data } = await apiClient.get<{ user: User }>('/api/user')
@@ -13,10 +13,10 @@ export async function login(payload: LoginPayload): Promise<User> {
   return data.user
 }
 
-export async function register(payload: RegisterPayload): Promise<User> {
+export async function register(payload: RegisterPayload): Promise<RegisterResult> {
   await ensureCsrfCookie()
-  const { data } = await apiClient.post<{ user: User }>('/api/register', payload)
-  return data.user
+  const { data } = await apiClient.post<RegisterResult>('/api/register', payload)
+  return data
 }
 
 export async function logout(): Promise<void> {
