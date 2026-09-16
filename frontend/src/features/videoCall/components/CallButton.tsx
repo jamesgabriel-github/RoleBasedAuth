@@ -16,7 +16,7 @@ export function CallButton({ conversationId, otherUser }: { conversationId: numb
       variant="outline"
       size="icon"
       disabled={phase !== 'idle'}
-      onClick={() => startCall(conversationId)}
+      onClick={() => startCall(conversationId, otherUser)}
       aria-label={`Start video call with ${otherUser.fullName}`}
     >
       <PhoneCall />

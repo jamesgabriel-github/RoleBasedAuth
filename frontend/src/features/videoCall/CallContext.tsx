@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { toast } from 'sonner'
 import { useAuth } from '@/features/auth/AuthContext'
 import { getErrorMessage } from '@/lib/errors'
+import type { User } from '@/types/user'
 import * as callApi from './api'
 import { useCallChannel } from './hooks/useCallChannel'
 import { useIncomingCallListener } from './hooks/useIncomingCallListener'
@@ -15,12 +16,13 @@ type CallPhase = 'idle' | 'outgoing' | 'incoming' | 'active'
 interface CallContextValue {
   phase: CallPhase
   call: Call | null
+  outgoingTarget: User | null
   localStream: MediaStream | null
   remoteStream: MediaStream | null
   isMuted: boolean
   isCameraOff: boolean
-  startCall: (conversationId: number) => Promise<void>
-  acceptIncoming: () => Promise<void>
+  startCall: (conversationId: number, targetUser: User) => void
+  acceptIncoming: () => void
   declineIncoming: () => Promise<void>
   hangUp: () => Promise<void>
   toggleMute: () => void
@@ -33,8 +35,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const [phase, setPhase] = useState<CallPhase>('idle')
   const [call, setCall] = useState<Call | null>(null)
+  const [outgoingTarget, setOutgoingTarget] = useState<User | null>(null)
   const [isMuted, setIsMuted] = useState(false)
   const [isCameraOff, setIsCameraOff] = useState(false)
+
+  // Set when the user hangs up an outgoing call before initiateCall() has
+  // even responded — there's no real Call to cancel yet, so we remember to
+  // cancel it as soon as the response arrives instead.
+  const outgoingCancelledRef = useRef(false)
 
   // Refs mirroring the latest state for the setTimeout ring-timeout callback
   // below, which is a plain closure created once and never refreshed by React.
@@ -75,6 +83,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     clearRingTimeout()
     peer.teardown()
     setCall(null)
+    setOutgoingTarget(null)
     setPhase('idle')
     setIsMuted(false)
     setIsCameraOff(false)
@@ -137,31 +146,56 @@ export function CallProvider({ children }: { children: ReactNode }) {
     setPhase('incoming')
   })
 
-  async function startCall(conversationId: number) {
+  function startCall(conversationId: number, targetUser: User) {
     if (phaseRef.current !== 'idle') return
-    try {
-      const newCall = await callApi.initiateCall(conversationId)
-      setCall(newCall)
-      setPhase('outgoing')
-      ringTimeoutRef.current = setTimeout(() => {
-        if (callRef.current?.id === newCall.id && phaseRef.current === 'outgoing') {
-          void callApi.timeoutCall(newCall.id).catch(() => {})
+
+    outgoingCancelledRef.current = false
+    setOutgoingTarget(targetUser)
+    setPhase('outgoing')
+
+    callApi
+      .initiateCall(conversationId)
+      .then((newCall) => {
+        if (outgoingCancelledRef.current) {
+          // Already hung up before the server responded — cancel it now
+          // instead of ringing, and don't touch local state (already idle).
+          void callApi.cancelCall(newCall.id).catch(() => {})
+          return
         }
-      }, CALL_RING_TIMEOUT_MS)
-    } catch (err) {
-      toast.error(getErrorMessage(err, 'Unable to start the call.'))
-    }
+
+        setCall(newCall)
+        ringTimeoutRef.current = setTimeout(() => {
+          if (callRef.current?.id === newCall.id && phaseRef.current === 'outgoing') {
+            void callApi.timeoutCall(newCall.id).catch(() => {})
+          }
+        }, CALL_RING_TIMEOUT_MS)
+      })
+      .catch((err) => {
+        toast.error(getErrorMessage(err, 'Unable to start the call.'))
+        resetState()
+      })
   }
 
-  async function acceptIncoming() {
-    if (!call || phase !== 'incoming') return
-    try {
-      await peer.getLocalMedia()
-      await callApi.acceptCall(call.id)
-    } catch (err) {
-      toast.error(getErrorMessage(err, 'Unable to join the call.'))
-      resetState()
-    }
+  function acceptIncoming() {
+    if (!call || phaseRef.current !== 'incoming') return
+
+    // The callee already has the full call (caller+callee) from the earlier
+    // CallInvited broadcast, so the call window can render immediately —
+    // no need to wait on getUserMedia or the accept round-trip.
+    const acceptedCallId = call.id
+    setPhase('active')
+
+    peer
+      .getLocalMedia()
+      .then(() => callApi.acceptCall(acceptedCallId))
+      .catch((err) => {
+        // If the user already hung up/declined locally while this was in
+        // flight, the call is already resolved — don't show a confusing
+        // error on top of an intentional hang-up.
+        if (callRef.current?.id !== acceptedCallId) return
+        toast.error(getErrorMessage(err, 'Unable to join the call.'))
+        resetState()
+      })
   }
 
   async function declineIncoming() {
@@ -172,10 +206,22 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   async function endActiveCall(outcome: 'ended' | 'failed') {
     const current = callRef.current
-    if (!current) return
+
+    if (!current) {
+      // Hung up before initiateCall() even responded — remember to cancel
+      // the real call once it arrives, and reset local state now.
+      if (phaseRef.current === 'outgoing') {
+        outgoingCancelledRef.current = true
+        resetState()
+      }
+      return
+    }
+
     try {
       if (current.status === 'ringing' && current.callerId === user?.id) {
         await callApi.cancelCall(current.id)
+      } else if (current.status === 'ringing' && current.calleeId === user?.id) {
+        await callApi.declineCall(current.id)
       } else if (current.status === 'ongoing') {
         await callApi.endCall(current.id, outcome)
       }
@@ -201,6 +247,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const value: CallContextValue = {
     phase,
     call,
+    outgoingTarget,
     localStream: peer.localStream,
     remoteStream: peer.remoteStream,
     isMuted,

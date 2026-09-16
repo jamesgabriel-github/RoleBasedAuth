@@ -25,8 +25,18 @@ function useElapsedSeconds(startedAt: string | null): number {
 
 export function CallWindow() {
   const { user } = useAuth()
-  const { phase, call, localStream, remoteStream, isMuted, isCameraOff, hangUp, toggleMute, toggleCamera } =
-    useCallContext()
+  const {
+    phase,
+    call,
+    outgoingTarget,
+    localStream,
+    remoteStream,
+    isMuted,
+    isCameraOff,
+    hangUp,
+    toggleMute,
+    toggleCamera,
+  } = useCallContext()
   const localVideoRef = useRef<HTMLVideoElement>(null)
   const remoteVideoRef = useRef<HTMLVideoElement>(null)
   const elapsed = useElapsedSeconds(call?.answeredAt ?? null)
@@ -39,9 +49,9 @@ export function CallWindow() {
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream
   }, [remoteStream, phase])
 
-  if ((phase !== 'outgoing' && phase !== 'active') || !call) return null
+  const otherUser = call ? (user?.id === call.callerId ? call.callee : call.caller) : outgoingTarget
 
-  const otherUser = user?.id === call.callerId ? call.callee : call.caller
+  if ((phase !== 'outgoing' && phase !== 'active') || !otherUser) return null
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black text-white">
