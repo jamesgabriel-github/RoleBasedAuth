@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { LayoutGrid, MessageCircle, ShieldCheck } from 'lucide-react'
+import { LayoutGrid, MessageCircle, ShieldCheck, UserRound } from 'lucide-react'
 import type { Role } from '@/types/user'
 
 export interface DashboardNavLink {
@@ -12,6 +12,7 @@ export interface DashboardNavLink {
 
 export const dashboardNavLinks: DashboardNavLink[] = [
   { to: '/dashboard', label: 'Overview', end: true, icon: LayoutGrid },
+  { to: '/profile', label: 'Profile', icon: UserRound },
   { to: '/messages', label: 'Messages', icon: MessageCircle },
   { to: '/admin/accounts', label: 'Admin accounts', roles: ['super_admin'], icon: ShieldCheck },
 ]

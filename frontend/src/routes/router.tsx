@@ -5,6 +5,7 @@ import { DashboardPage } from '@/pages/DashboardPage'
 import { LoginRegisterPage } from '@/pages/LoginRegisterPage'
 import { MessagesEmptyState, MessagesPage } from '@/pages/MessagesPage'
 import { OAuthCallbackPage } from '@/pages/OAuthCallbackPage'
+import { ProfilePage } from '@/pages/ProfilePage'
 import { PublicLandingPage } from '@/pages/PublicLandingPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { PublicOnlyRoute } from './PublicOnlyRoute'
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute />,
     children: [
       { path: '/dashboard', element: <DashboardPage /> },
+      { path: '/profile', element: <ProfilePage /> },
       {
         path: '/admin/accounts',
         element: (
