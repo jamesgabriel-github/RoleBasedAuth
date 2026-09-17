@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Admin\UserStatusController;
 use App\Http\Controllers\Api\Auth\DesktopTokenController;
 use App\Http\Controllers\Api\Auth\LoginController;
 use App\Http\Controllers\Api\Auth\RegisterController;
+use App\Http\Controllers\Api\Auth\UserAvatarController;
 use App\Http\Controllers\Api\Auth\UserController;
 use App\Http\Controllers\Api\Calling\CallController;
 use App\Http\Controllers\Api\Messaging\ConversationController;
@@ -20,6 +21,8 @@ Route::post('/login', [LoginController::class, 'store']);
 
 Route::middleware(['auth:sanctum', 'account.active'])->group(function () {
     Route::get('/user', [UserController::class, 'me']);
+    Route::post('/user/avatar', [UserAvatarController::class, 'store']);
+    Route::delete('/user/avatar', [UserAvatarController::class, 'destroy']);
     Route::post('/logout', [LoginController::class, 'destroy']);
     Route::post('/desktop-token', [DesktopTokenController::class, 'store']);
 

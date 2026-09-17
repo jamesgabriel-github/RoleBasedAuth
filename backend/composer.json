@@ -12,6 +12,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.31",
         "laravel/tinker": "^3.0",
+        "spatie/laravel-google-cloud-storage": "^2.4",
         "spatie/laravel-permission": "^8.3"
     },
     "require-dev": {

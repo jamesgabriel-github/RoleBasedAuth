@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -81,6 +81,7 @@ export function UserSearchCombobox({ onSelect }: { onSelect: (user: User) => voi
               className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
             >
               <Avatar size="sm">
+                <AvatarImage src={user.avatarUrl ?? undefined} alt={user.fullName} />
                 <AvatarFallback>{initials(user.fullName)}</AvatarFallback>
               </Avatar>
               <span className="flex flex-col overflow-hidden">

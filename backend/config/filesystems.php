@@ -60,7 +60,32 @@ return [
             'report' => false,
         ],
 
+        'gcs' => [
+            'driver' => 'gcs',
+            'key_file_path' => storage_path(env('GOOGLE_CLOUD_KEY_FILE', 'app/private/gcs-service-account.json')),
+            'project_id' => env('GOOGLE_CLOUD_PROJECT_ID'),
+            'bucket' => env('GOOGLE_CLOUD_STORAGE_BUCKET'),
+            'path_prefix' => env('GOOGLE_CLOUD_STORAGE_PATH_PREFIX', ''),
+            // Uniform bucket-level access is enabled on the bucket, which rejects
+            // per-object ACLs. This handler skips setting any predefined ACL —
+            // public read must be granted via bucket-level IAM instead
+            // (allUsers -> Storage Object Viewer).
+            'visibility_handler' => \League\Flysystem\GoogleCloudStorage\UniformBucketLevelAccessVisibility::class,
+        ],
+
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Avatar Disk
+    |--------------------------------------------------------------------------
+    |
+    | Which of the disks above should be used to store user-uploaded profile
+    | pictures. Kept as its own key so controllers never hardcode a disk name.
+    |
+    */
+
+    'avatar_disk' => env('AVATAR_DISK', 'gcs'),
 
     /*
     |--------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useCallContext } from '../CallContext'
@@ -22,6 +22,7 @@ export function IncomingCallModal() {
       <DialogContent showCloseButton={false} className="text-center">
         <DialogHeader className="items-center">
           <Avatar size="lg">
+            <AvatarImage src={call.caller.avatarUrl ?? undefined} alt={call.caller.fullName} />
             <AvatarFallback className="text-lg">{initials(call.caller.fullName)}</AvatarFallback>
           </Avatar>
           <DialogTitle>{call.caller.fullName}</DialogTitle>

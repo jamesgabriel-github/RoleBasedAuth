@@ -1,6 +1,7 @@
 import { Clock, Shield, User } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/features/auth/AuthContext'
+import { AvatarUploader } from '@/features/dashboard/components/AvatarUploader'
 import { DashboardShell } from '@/features/dashboard/components/DashboardShell'
 import { StatCard } from '@/features/dashboard/components/StatCard'
 import { ROLE_LABELS } from '@/features/dashboard/roleLabels'
@@ -22,6 +23,8 @@ export function ProfilePage() {
             Here's a quick summary of your account status, role, and details.
           </p>
         </div>
+
+        <AvatarUploader />
 
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard

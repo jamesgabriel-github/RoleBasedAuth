@@ -7,6 +7,7 @@ export interface User {
   lastName: string
   fullName: string
   contactNumber: string | null
+  avatarUrl: string | null
   email: string
   role: Role
   isActive: boolean

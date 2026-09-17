@@ -1,5 +1,5 @@
 import { LogOut, Menu } from 'lucide-react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -46,6 +46,7 @@ export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-10 w-10 rounded-full p-0">
             <Avatar>
+              <AvatarImage src={user.avatarUrl ?? undefined} alt={user.fullName} />
               <AvatarFallback>{initials(user.fullName)}</AvatarFallback>
             </Avatar>
           </Button>

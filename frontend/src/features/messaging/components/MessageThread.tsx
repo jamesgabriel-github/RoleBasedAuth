@@ -2,7 +2,7 @@ import { ChevronLeft } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import type { UIEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -104,6 +104,7 @@ export function MessageThread({
           <ChevronLeft className="size-5" />
         </Button>
         <Avatar>
+          <AvatarImage src={otherUser.avatarUrl ?? undefined} alt={otherUser.fullName} />
           <AvatarFallback>{initials(otherUser.fullName)}</AvatarFallback>
         </Avatar>
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
