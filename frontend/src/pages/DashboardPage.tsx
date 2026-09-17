@@ -4,6 +4,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { LoggedInClientsTable } from '@/features/admin/components/LoggedInClientsTable'
 import { DashboardShell } from '@/features/dashboard/components/DashboardShell'
 import { getGreeting } from '@/features/dashboard/utils'
+import { NewsFeed } from '@/features/news/components/NewsFeed'
 import { RequirePermission } from '@/routes/RequirePermission'
 
 export function DashboardPage() {
@@ -21,13 +22,15 @@ export function DashboardPage() {
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Overview</h1>
             <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-              Here's what's happening across your workspace.
+              Catch up on today's top headlines and your workspace at a glance.
             </p>
           </div>
           <Button asChild>
             <Link to="/messages">Go to messages</Link>
           </Button>
         </div>
+
+        <NewsFeed />
 
         <RequirePermission permission="view-logged-in-clients">
           <LoggedInClientsTable />

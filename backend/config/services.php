@@ -53,4 +53,9 @@ return [
         'redirect' => env('GITHUB_REDIRECT_URI'),
     ],
 
+    'nytimes' => [
+        'api_key' => env('NYT_API_KEY'),
+        'section' => env('NYT_SECTION', 'home'),
+    ],
+
 ];

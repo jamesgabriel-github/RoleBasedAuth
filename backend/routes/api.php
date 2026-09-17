@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Messaging\ConversationController;
 use App\Http\Controllers\Api\Messaging\MessageController;
 use App\Http\Controllers\Api\Messaging\ReadReceiptController;
 use App\Http\Controllers\Api\Messaging\UserSearchController;
+use App\Http\Controllers\Api\NewsController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [RegisterController::class, 'store']);
@@ -21,6 +22,8 @@ Route::middleware(['auth:sanctum', 'account.active'])->group(function () {
     Route::get('/user', [UserController::class, 'me']);
     Route::post('/logout', [LoginController::class, 'destroy']);
     Route::post('/desktop-token', [DesktopTokenController::class, 'store']);
+
+    Route::get('/news', [NewsController::class, 'index']);
 
     Route::middleware('permission:view-logged-in-clients')
         ->get('/admin/clients/logged-in', [LoggedInClientsController::class, 'index']);
