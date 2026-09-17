@@ -489,6 +489,7 @@ Update the redirect URI to `https://yourdomain.duckdns.org:8000/auth/{provider}/
 - `sudo systemctl status reverb queue-worker` — both `active (running)`
 - Reverb's startup log line should read `Starting server on 127.0.0.1:8080` — if it shows `0.0.0.0:8080`, `REVERB_SERVER_HOST` wasn't picked up (check `.env`, then `config:clear && config:cache`, then `systemctl restart reverb`)
 - `sudo journalctl -u reverb -n 50 --no-pager` / `-u queue-worker` for anything not obviously running
+- `sudo crontab -u www-data -l` shows the `schedule:run` entry, and `php artisan schedule:list` matches what's actually expected to run
 
 **Frontend Build**
 - `Select-String -Path dist\assets\*.js -Pattern "yourdomain.duckdns.org"` before uploading
@@ -504,6 +505,44 @@ Update the redirect URI to `https://yourdomain.duckdns.org:8000/auth/{provider}/
 
 ---
 
+## Part 12: Scheduler (cron, not `schedule:work`)
+
+Laravel's task scheduler needs something to trigger `schedule:run` regularly. Two options exist: a persistent `schedule:work` process supervised by its own systemd service (same shape as Reverb/queue-worker), or a standard cron entry ticking `schedule:run` once a minute.
+
+**Cron is the better fit for this box specifically** — `schedule:work` would be a fourth long-running PHP process resident in memory continuously, on a VM that already needed a swap file to comfortably run three (Nginx, PHP-FPM, Reverb, queue worker). Cron's short-lived per-minute process holds nothing in memory between ticks. It also sidesteps the "forgot to restart after a deploy" class of bug that affects Reverb and the queue worker — each cron tick starts fresh from whatever code is currently on disk, so no `systemctl restart` is needed for the scheduler specifically after a deploy.
+
+**1. Confirm registered tasks exist:**
+```bash
+cd /var/www/app/backend
+php artisan schedule:list
+```
+
+**2. Add to `www-data`'s crontab** (matching the ownership of everything else PHP-related on this box), using the absolute PHP path since cron's environment won't reliably resolve a bare `php`:
+```bash
+sudo crontab -u www-data -e
+```
+```
+* * * * * cd /var/www/app/backend && /usr/bin/php artisan schedule:run >> /dev/null 2>&1
+```
+
+**3. Verify it's actually firing:**
+```bash
+sudo crontab -u www-data -l
+grep CRON /var/log/syslog | tail -5
+```
+The second command should show a new entry appearing roughly once a minute.
+
+**4. Debugging a failed scheduled command:** the scheduler's own log entry (`Scheduled command [...] failed with exit code [1]`) only reports the exit code, not the underlying exception. Run the command directly to see the real error:
+```bash
+php artisan <command-name>
+```
+Or find it in context in the log:
+```bash
+grep -B 5 "<command-name>.*failed with exit code" storage/logs/laravel.log
+```
+
+---
+
 ## Recurring Gotchas Worth Remembering
 
 - **`.env` changes require re-caching**: `php artisan config:clear && php artisan config:cache`, or Laravel keeps serving stale values silently.
@@ -514,3 +553,4 @@ Update the redirect URI to `https://yourdomain.duckdns.org:8000/auth/{provider}/
 - **Composer lock files are PHP-version-sensitive**: a lock file resolved on a newer PHP will refuse to install on an older one; `composer update` re-resolves against whatever PHP is actually present.
 - **Neon's pooled connection and Laravel migrations don't always mix well**: use the direct connection string unless you have a specific reason to need pooling.
 - **Zip a folder's contents, not the folder itself**, or the archive gains a nested directory level that breaks path-relative serving.
+- **A fourth always-on process isn't the only way to run scheduled tasks**: cron ticking `schedule:run` once a minute holds nothing in memory between runs, unlike `schedule:work` — worth defaulting to on a RAM-constrained box like this one.
