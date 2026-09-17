@@ -38,9 +38,9 @@ export function TopNav({ onMenuClick }: { onMenuClick: () => void }) {
           <Menu className="size-5" />
         </Button>
         <div className="flex size-8 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
-          A
+          G
         </div>
-        <span className="text-lg font-semibold">Auth SPA</span>
+        <span className="text-lg font-semibold">GAB App</span>
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

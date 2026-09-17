@@ -5,7 +5,7 @@ export function PublicLandingPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="flex h-16 items-center justify-between border-b px-6">
-        <span className="text-lg font-semibold">Auth SPA</span>
+        <span className="text-lg font-semibold">GAB App</span>
         <nav className="flex gap-2">
           <Button asChild variant="ghost">
             <Link to="/login">Log in</Link>
@@ -35,7 +35,7 @@ export function PublicLandingPage() {
       </main>
 
       <footer className="border-t px-6 py-4 text-center text-xs text-muted-foreground">
-        &copy; {new Date().getFullYear()} Auth SPA. All rights reserved.
+        &copy; {new Date().getFullYear()} GAB App. All rights reserved.
       </footer>
     </div>
   )
