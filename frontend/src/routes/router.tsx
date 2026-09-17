@@ -3,6 +3,7 @@ import { AdminAccountsPage } from '@/pages/AdminAccountsPage'
 import { ConversationPage } from '@/pages/ConversationPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { LoginRegisterPage } from '@/pages/LoginRegisterPage'
+import { ManageClientsPage } from '@/pages/ManageClientsPage'
 import { MessagesEmptyState, MessagesPage } from '@/pages/MessagesPage'
 import { OAuthCallbackPage } from '@/pages/OAuthCallbackPage'
 import { ProfilePage } from '@/pages/ProfilePage'
@@ -37,6 +38,14 @@ export const router = createBrowserRouter([
     children: [
       { path: '/dashboard', element: <DashboardPage /> },
       { path: '/profile', element: <ProfilePage /> },
+      {
+        path: '/admin/clients',
+        element: (
+          <RequireRole roles={['admin', 'super_admin']}>
+            <ManageClientsPage />
+          </RequireRole>
+        ),
+      },
       {
         path: '/admin/accounts',
         element: (

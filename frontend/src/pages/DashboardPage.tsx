@@ -1,11 +1,9 @@
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/features/auth/AuthContext'
-import { LoggedInClientsTable } from '@/features/admin/components/LoggedInClientsTable'
 import { DashboardShell } from '@/features/dashboard/components/DashboardShell'
 import { getGreeting } from '@/features/dashboard/utils'
 import { NewsFeed } from '@/features/news/components/NewsFeed'
-import { RequirePermission } from '@/routes/RequirePermission'
 
 export function DashboardPage() {
   const { user } = useAuth()
@@ -31,10 +29,6 @@ export function DashboardPage() {
         </div>
 
         <NewsFeed />
-
-        <RequirePermission permission="view-logged-in-clients">
-          <LoggedInClientsTable />
-        </RequirePermission>
       </div>
     </DashboardShell>
   )
