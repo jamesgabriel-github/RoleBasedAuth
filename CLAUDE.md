@@ -1,24 +1,37 @@
 # Project: Auth-Based SPA (Guest / Dashboard Routing)
 
 ## Overview
-A single page application (SPA) with role-based authentication and routing. Guests are routed to a public page; logged-in users are redirected to a dashboard on login.
+A single page application (SPA) with role-based authentication, role-aware routing, and real-time direct messaging. Guests are routed to a public landing page; logged-in users are redirected to a dashboard. All authenticated users can send direct messages to each other with asymmetric discovery (clients search clients; admins/super admins search anyone) and real-time updates via WebSocket.
 
 ## Tech Stack
-- **Backend:** Laravel (API-only, serves as backend for the SPA)
-- **Frontend:** ReactJS + TypeScript
-- **Styling:** Tailwind CSS
-- **UI Components:** shadcn/ui
-- **Database:** PostgreSQL
-- **Architecture:** Single Page Application (SPA) — Laravel serves as an API backend, React handles all routing/rendering client-side (e.g. via React Router)
+- **Backend:** Laravel 13 (API-only, JSON responses), PostgreSQL, Sanctum (session-based auth), Socialite (OAuth), Reverb (WebSocket broadcasting)
+- **Frontend:** React 19 + TypeScript, Vite, Tailwind CSS v4, shadcn/ui, React Router, Echo (WebSocket client)
+- **Styling:** Tailwind CSS v4
+- **UI Components:** shadcn/ui (+ custom Reverb-aware messaging components)
+- **Database:** PostgreSQL with database-backed sessions
+- **Architecture:** Single Page Application (SPA) with WebSocket real-time features — Laravel serves as a JSON API backend, React handles all routing/rendering client-side (React Router), Reverb provides real-time bidirectional communication via WebSockets
 
 ## Authentication
-Support the following login methods:
-- Default (username/email + password)
-- Google OAuth
-- Facebook OAuth
-- GitHub OAuth
 
-Use **Laravel Sanctum** for API auth, with Laravel Socialite for Google/Facebook/GitHub OAuth providers.
+### Login Methods
+Support all of the following (all converge on the same session-cookie flow):
+- **Email + Password** (default auth)
+- **Google OAuth** (via Laravel Socialite)
+- **Facebook OAuth** (via Laravel Socialite)
+- **GitHub OAuth** (via Laravel Socialite)
+
+### Session-Based Auth (Not Tokens)
+- Use **Laravel Sanctum** in **stateful API mode** (not bearer tokens)
+- Session cookies stored in browser; session state persisted in PostgreSQL `sessions` table
+- Frontend sends session cookie automatically on every request (via `withCredentials: true`)
+- Backend validates session on each request; disabling a user instantly invalidates all their sessions (delete session rows)
+- No JWT tokens, no token expiration logic — session lifetime is the single source of truth (`SESSION_LIFETIME=120` minutes)
+- OAuth callback flow generates the same session cookie as email/password login — unified auth experience
+
+### Cross-Origin Session Auth
+- `SANCTUM_STATEFUL_DOMAINS=localhost:5173` allows frontend origin to use session cookies
+- CORS configured to accept credentials and set same-site cookies
+- CSRF protection via `X-XSRF-TOKEN` header (token from `XSRF-TOKEN` cookie)
 
 ### Registration (Default Auth)
 Public registration (from the login/register page) is for **client accounts only**. Required fields:
@@ -52,6 +65,32 @@ Each user has exactly one role, stored as an **enum column** (`role`) directly o
   - `view-logged-in-clients` — view list of all currently logged-in clients
 - `client`: no admin-level permissions (standard end-user access only)
 
+## Real-Time Direct Messaging
+
+### Architecture
+- **Backend:** Laravel Reverb (WebSocket server) + Illuminate Broadcasting for event distribution
+- **Frontend:** Echo.js library to subscribe to channels and listen for events
+- **Models:** `Conversation` (between 2 users), `Message` (belongs to conversation), `ConversationParticipant` (tracks read state)
+- **Events:** `MessageSent` (broadcast to conversation), `ConversationUpdated` (broadcast to specific participant)
+- **Policies:** `ConversationPolicy` enforces participant-only access (even super_admin cannot view others' conversations)
+
+### Discovery (Asymmetric)
+- **Clients** can only search other clients when starting a conversation
+- **Admins & super_admins** can search any user (client or admin)
+- Enforced in `UserSearchController` by role-based query filtering
+
+### Unread Tracking
+- Per-participant `last_read_at` timestamp in `conversation_participants` table
+- Frontend tracks unread count in `MessagingContext`
+- User marks a conversation as read via `PATCH /conversations/{id}/read` (updates their `last_read_at`)
+- Real-time update via `ConversationUpdated` broadcast when either participant sends a message
+
+### Queue & Broadcasting
+- `QUEUE_CONNECTION=database` — queue jobs stored in database
+- `BROADCAST_CONNECTION=reverb` — use Reverb for broadcasting
+- Queue worker (`php artisan queue:work`) processes broadcast jobs asynchronously
+- Reverb WebSocket server (`php artisan reverb:start`) serves WebSocket connections
+
 ## Routing Behavior
 | User State | Behavior |
 |---|---|
@@ -61,34 +100,107 @@ Each user has exactly one role, stored as an **enum column** (`role`) directly o
 - Route guards on the frontend should check auth state before rendering protected routes.
 - Role-based access control should determine what each role can see/do within the dashboard (e.g. super admin > admin > client permissions).
 
-## Initial Page Content/Design (placeholder — will be refined later)
+## Pages & Routes (Status: ✅ Implemented)
 
 ### Public Page (Guest landing)
-- Simple landing/marketing page: hero section with app name/tagline, brief description, and a "Login" / "Register" call-to-action.
-- Optional: basic nav bar (logo, Login/Register buttons), footer.
+- **Status:** ✅ Implemented (PublicLandingPage)
+- Hero section with app tagline and call-to-action buttons
+- "Login" and "Register" buttons redirect to login/register page
+- Accessible only to unauthenticated users (PublicOnlyRoute guard)
 
 ### Login / Register Page
-- Tabbed or toggled Login / Register forms.
-- Login: email + password fields, plus "Continue with Google / Facebook / GitHub" buttons.
-- Register (client only): first name, middle name, last name, contact number, email, password, confirm password.
+- **Status:** ✅ Implemented (LoginRegisterPage)
+- Tabbed interface: "Sign in" and "Sign up" tabs
+- Sign in: email + password fields, OAuth buttons (Google, Facebook, GitHub)
+- Sign up: first name, middle name, last name, contact number, email, password (client-only registration)
+- OAuth error handling (email missing, account exists, etc.)
+- Accessible only to unauthenticated users (PublicOnlyRoute guard)
 
-### Dashboard Page (Logged-in landing)
-- Basic authenticated shell: sidebar or top nav showing user's name and role.
-- Placeholder content area (cards/stats) — to be replaced with real widgets later.
-- Role-aware nav items (e.g. admin-only links hidden from clients).
+### Dashboard Page
+- **Status:** ✅ Implemented (DashboardPage)
+- Authenticated shell with sidebar navigation
+- Shows current user's name and role
+- Role-aware navigation items:
+  - All users: "Overview", "Messages"
+  - Super admin only: "Admin accounts"
+- ProtectedRoute guard ensures only authenticated users access
 
-### Admin Account Creation Page (secured — super admin only)
-- Accessible only to super admin.
-- Form to create a new admin/super admin account (name fields, email, password, role selector).
-- Simple table listing existing admin/super admin accounts.
+### Messages Page & Conversation View
+- **Status:** ✅ Implemented (MessagesPage, ConversationPage)
+- Split view: conversation list (left) + message thread (right)
+- Conversation list shows all active conversations with unread badge
+- Message thread displays messages, composer, and real-time updates
+- User search combobox to start new conversations (role-based discovery)
+- Real-time message delivery and read receipts via Reverb WebSocket
+- Accessible to all authenticated users
+
+### Admin Accounts Page
+- **Status:** ✅ Implemented (AdminAccountsPage)
+- Accessible only to super_admin users (RequireRole guard)
+- Form to create new admin or super_admin accounts (email, password, role selector)
+- Table listing all admin/super_admin accounts with enable/disable actions
+- Disabling an account instantly invalidates all their sessions
+
+## Implementation Status
+
+### ✅ Completed
+- Session-based Sanctum authentication (no bearer tokens)
+- Email/password login + Google/Facebook/GitHub OAuth
+- Role-based authorization (enum + spatie/laravel-permission)
+- User enable/disable with instant session invalidation
+- Real-time messaging with Reverb/Echo WebSocket
+- Asymmetric user discovery (clients search clients; admins search all)
+- Per-participant unread tracking and read receipts
+- Authorization policies (ConversationPolicy prevents super_admin bypass)
+- Frontend auth bootstrap (CSRF cookie + identity check on app load)
+- React Router with ProtectedRoute, PublicOnlyRoute, RequireRole guards
+
+### 📋 Documentation
+- [AUTH_FLOW_GUIDE.md](./AUTH_FLOW_GUIDE.md) — Deep dive into session auth, OAuth, and logout flow
+- [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) — Detailed backend + frontend breakdown
+- [MESSAGING_IMPLEMENTATION.md](./MESSAGING_IMPLEMENTATION.md) — WebSocket, Reverb, channel authorization, real-time updates
 
 ## Development Notes for Claude
-- Keep Laravel as a pure API (return JSON), do not use Blade views for app pages.
-- Use TypeScript types/interfaces for all API responses and shared data models.
-- Use shadcn/ui components as the base for UI; extend with Tailwind utility classes rather than custom CSS where possible.
-- Database migrations should include a `role` enum or a `roles` table — confirm which pattern before implementing.
-- OAuth callback handling should issue the same token/session format as default login so the frontend auth flow is unified regardless of provider.
-- Favor small, typed React components and colocate related logic (hooks, types) per feature.
+
+### Architecture & Code Style
+- **Backend:** Pure API (return JSON), no Blade views for app pages
+- **Frontend:** TypeScript for all types, React components colocated with hooks/types per feature
+- **UI:** shadcn/ui as base; extend with Tailwind v4 utilities (no custom CSS)
+- **Components:** Favor small, composable components with clear prop contracts
+
+### Authentication Flow (Reference)
+1. User logs in (email or OAuth) → session created → session cookie stored in browser
+2. Frontend bootstrap: fetch CSRF token, then GET `/api/user` to load user state
+3. On every request: session cookie sent automatically (Sanctum validates on backend)
+4. On logout: session row deleted → request returns 401 → frontend clears user state
+5. ProtectedRoute re-evaluates when AuthContext `user` changes → redirect to "/" if null
+
+### Authorization Pattern
+- Roles: enum on `users.role` column (source of truth)
+- Permissions: spatie/laravel-permission tables (fine-grained control)
+- Routes: guarded by `middleware('role:...')` or `middleware('permission:...')`
+- Models: protected by Laravel `Gate::authorize()` calling policy methods
+- Frontend: `requiredPermissions` array in user response; UI conditionally renders based on `useAuth().user.permissions`
+
+### Messaging & WebSocket
+- Events (`MessageSent`, `ConversationUpdated`) broadcast via Reverb
+- Channels require authorization via `ConversationPolicy` (participant-only)
+- Frontend `MessagingContext` manages Echo connection lifecycle (connect on login, disconnect on logout)
+- `useConversationChannel` hook subscribes to conversation updates in real-time
+
+### Session & Cookies
+- `SESSION_DRIVER=database` — sessions persisted in PostgreSQL
+- `SESSION_LIFETIME=120` — minutes; no refresh/extend logic
+- `SANCTUM_STATEFUL_DOMAINS=localhost:5173` — allows frontend origin to use session cookies
+- Disabling a user deletes their session rows instantly (no token expiry to wait for)
+
+## Known Constraints & Design Decisions
+- **No token refresh:** Session expires after `SESSION_LIFETIME` minutes; user must log in again (no "remember me" or refresh tokens)
+- **Session-only auth:** No bearer tokens; simplifies CORS and avoids token storage on frontend
+- **Conversation privacy:** ConversationPolicy blocks all access to private conversations (even super_admin cannot bypass)
+- **Asymmetric discovery:** Frontend enforces role-based user search via `UserSearchController` filtering
+- **Real-time is broadcast-only:** Messages sync one-way (broadcaster → listeners); no fallback if WebSocket disconnects mid-message
+- **Unread count is participant-specific:** No "global unread" badge; each user tracks their own read state
 
 ## Open Questions / To Confirm
-- None currently — all core requirements above are confirmed. Update this section as new details or edge cases come up during development.
+- None currently — all core requirements above are confirmed and implemented. Update this section as new edge cases or feature requests come up.
