@@ -18,11 +18,13 @@ export function PublicLandingPage() {
 
       <main className="flex flex-1 flex-col items-center justify-center gap-6 px-6 text-center">
         <h1 className="max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">
-          Role-based authentication, done right.
+          Welcome to GAB — the seamless multi-client messaging experience.
         </h1>
-        <p className="max-w-xl text-muted-foreground">
-          A single page application with guest and dashboard routing, social login, and
-          role-aware access control for clients, admins, and super admins.
+        <p className="max-w-2xl text-muted-foreground">
+          Connect effortlessly across devices with one unified account and real-time
+          infrastructure. Whether you're on the web app (Laravel + React SPA) or the native
+          Python desktop app, you can message and video-call. A browser user and a desktop user
+          can chat or jump into a call interchangeably — no barriers, just smooth communication.
         </p>
         <div className="flex gap-3">
           <Button asChild size="lg">
